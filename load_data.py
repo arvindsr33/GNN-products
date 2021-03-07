@@ -8,7 +8,7 @@ import os
 
 def get_product_clusters():
     dataset_name = "ogbn-products"
-    dataset = PygNodePropPredDataset(name=dataset_name) #, transform=T.ToSparseTensor())
+    dataset = PygNodePropPredDataset(name=dataset_name)
 
     print('The {} dataset has {} graph'.format(dataset_name, len(dataset)))
 
@@ -32,7 +32,7 @@ def get_product_clusters():
     data['test_mask'] = test_mask
 
     cluster_data = ClusterData(data, num_parts=15000, save_dir="dataset")
-    return cluster_data
+    return cluster_data, dataset, data, split_idx
 
 
 def get_cluster_batches(cluster_data, batch_size):

@@ -5,34 +5,26 @@ from torch_geometric.nn import GCNConv
 class GCN(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, num_layers,
                  dropout, return_embeds=False):
-        # TODO: Implement this function that initializes self.convs,
-        # self.bns, and self.softmax.
 
         super(GCN, self).__init__()
 
-        # A list of GCNConv layers
-        self.convs = None
-
-        # A list of 1D batch normalization layers
-        self.bns = None
-
-        # The log softmax layer
-        self.softmax = None
+        self.num_layers = num_layers
 
         self.convs = torch.nn.ModuleList([GCNConv(input_dim, hidden_dim)] + \
                                          [GCNConv(hidden_dim, hidden_dim) for i in range(num_layers - 2)] + \
                                          [GCNConv(hidden_dim, output_dim)])
+
         self.bns = torch.nn.ModuleList([torch.nn.BatchNorm1d(hidden_dim)
                                         for _ in range(num_layers - 1)])
-        self.softmax = torch.nn.LogSoftmax(dim=1)
 
-        #########################################
+        self.softmax = torch.nn.LogSoftmax(dim=1)
 
         # Probability of an element to be zeroed
         self.dropout = dropout
 
         # Skip classification layer and return node embeddings
         self.return_embeds = return_embeds
+        print(self)
 
     def reset_parameters(self):
         for conv in self.convs:
@@ -41,7 +33,7 @@ class GCN(torch.nn.Module):
             bn.reset_parameters()
 
     def forward(self, x, adj_t):
-        z = self.convs[0](x, adj_t)
+        z = self.convs[1](torch.nn.functional.relu(self.convs[0](x, adj_t)), adj_t)
 
         for i, layer in enumerate(self.bns):
             bn = layer(z)
