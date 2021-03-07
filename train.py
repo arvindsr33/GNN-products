@@ -99,7 +99,7 @@ if __name__ == "__main__":
         model.to("device")
         train_acc, valid_acc = result
         print(f'Epoch: {epoch:02d}, '
-            # f'Loss: {loss:.4f}, '
+            f'Loss: {loss:.4f}, '
             f'Train: {100 * train_acc:.2f}%, '
             f'Valid: {100 * valid_acc:.2f}% '
             f'Test: {100 * 0:.2f}%')
