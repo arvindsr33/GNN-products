@@ -33,7 +33,7 @@ class GCN(torch.nn.Module):
             bn.reset_parameters()
 
     def forward(self, x, adj_t):
-        z = self.convs[1](torch.nn.functional.relu(self.convs[0](x, adj_t)), adj_t)
+        z = self.convs[0](x, adj_t)
 
         for i, layer in enumerate(self.bns):
             bn = layer(z)

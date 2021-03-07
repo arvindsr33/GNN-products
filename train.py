@@ -14,7 +14,7 @@ def train(model, data_loader, optimizer, device):
     total_loss = 0
     total_nodes = 0
 
-    with tqdm(total=len(data_loader), disable=True) as progress_bar:
+    with tqdm(total=len(data_loader)) as progress_bar:
         for batch in data_loader:
             batch = batch.to(device)
             if batch.train_mask.sum() == 0:
@@ -39,9 +39,10 @@ def train(model, data_loader, optimizer, device):
 @torch.no_grad()
 def test(model, data, split_idx, evaluator):
     model.eval()
-
     print("starting")
-    out = model(data.x, data.edge_index)
+    print(data)
+
+    out = model(data.x, data.adj_t)
     print("Out done")
 
     y_pred = out.argmax(dim=-1, keepdim=True)
@@ -66,8 +67,8 @@ if __name__ == "__main__":
     device = "cuda"
     args = {
         'device': device,
-        'num_layers': 1,
-        'hidden_dim': 1,
+        'num_layers': 3,
+        'hidden_dim': 256,
         'dropout': 0.5,
         'lr': 0.001,
         'epochs': 100,
@@ -76,11 +77,15 @@ if __name__ == "__main__":
     cluster_data, dataset, data, split_idx = ld.get_product_clusters()
     data_loader = ld.get_cluster_batches(cluster_data, 4)
 
+    dataset_name = "ogbn-products"
+    dataset_eval = PygNodePropPredDataset(name=dataset_name, transform=T.ToSparseTensor())
+    eval_data = dataset_eval[0]
+
+    eval_split_idx = dataset_eval.get_idx_split()
+
     model = models.GCN(data.num_features, args['hidden_dim'],
                 dataset.num_classes, args['num_layers'],
                 args['dropout'])
-
-    model = model.to(device)
 
     evaluator = Evaluator(name='ogbn-products')
 
@@ -93,15 +98,15 @@ if __name__ == "__main__":
     best_valid_acc = 0
 
     for epoch in range(1, 1 + args["epochs"]):
+        model.to(device)
         loss = train(model, data_loader, optimizer, device)
         model.to("cpu")
-        result = test(model, data, split_idx, evaluator)
-        model.to("device")
+        result = test(model, eval_data, eval_split_idx, evaluator)
         train_acc, valid_acc = result
         print(f'Epoch: {epoch:02d}, '
-            f'Loss: {loss:.4f}, '
-            f'Train: {100 * train_acc:.2f}%, '
-            f'Valid: {100 * valid_acc:.2f}% '
-            f'Test: {100 * 0:.2f}%')
+              f'Loss: {loss:.4f}, '
+              f'Train: {100 * train_acc:.2f}%, '
+              f'Valid: {100 * valid_acc:.2f}% '
+              f'Test: {100 * 0:.2f}%')
 
 
