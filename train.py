@@ -21,7 +21,7 @@ def train(model, data_loader, optimizer, device):
                 continue
 
             optimizer.zero_grad()
-            out = model(batch.x, batch.edge_index)[batch.train_mask]
+            out = model(batch.x, edge_index=batch.edge_index, adj_t=batch.edge_index)[batch.train_mask]
             y = torch.flatten(batch.y[batch.train_mask])
             loss = F.nll_loss(out, y)
             loss.backward()
@@ -37,12 +37,18 @@ def train(model, data_loader, optimizer, device):
 
 
 @torch.no_grad()
-def test(model, data, split_idx, evaluator):
+def test(model, data, split_idx, evaluator, use_edge_index=False):
     model.eval()
     print("starting")
     print(data)
 
-    out = model(data.x, data.adj_t)
+    if use_edge_index:
+        edge_index = data.edge_index
+        print(edge_index.shape)
+        
+        out = model(data.x, edge_index=edge_index)
+    else:
+        out = model(data.x, data.adj_t)
     print("Out done")
 
     y_pred = out.argmax(dim=-1, keepdim=True)
@@ -62,7 +68,61 @@ def test(model, data, split_idx, evaluator):
 
     return train_acc, valid_acc
 
+def run(model,data_loader,split_idx, extra_args=None):
+    device = "cpu"
+    args = {
+        'device': device,
+        'num_layers': 3,
+        'hidden_dim': 256,
+        'dropout': 0.5,
+        'lr': 0.001,
+        'epochs': 100,
+    }
+    if extra_args:
+      for k in extra_args:
+        args[k] = extra_args[k]
 
+    dataset_name = "ogbn-products"
+    if extra_args.get('use_edge_index', 0) == 1:
+      dataset_eval = PygNodePropPredDataset(name=dataset_name)
+    else:
+      dataset_eval = PygNodePropPredDataset(name=dataset_name, transform=T.ToSparseTensor())
+
+    eval_data = dataset_eval[0]
+
+    eval_split_idx = dataset_eval.get_idx_split()
+
+    evaluator = Evaluator(name='ogbn-products')
+
+    model.reset_parameters()
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
+    loss_fn = F.nll_loss
+
+    best_model = None
+    best_valid_acc = 0
+
+    print("----------------------------------")
+    print("Params:", args)
+    print("======")
+    
+    for epoch in range(1, 1 + args["epochs"]):
+        model.to(device)
+        loss = train(model, data_loader, optimizer, device)
+        model.to("cpu")
+        if extra_args.get('eval_small', 0) == 1:
+          result = test(model, data_loader.dataset[0], split_idx, evaluator, use_edge_index=True)
+        else:
+          result = test(model, eval_data, eval_split_idx, evaluator, use_edge_index=extra_args['use_edge_index'])
+        train_acc, valid_acc = result
+        print(f'Epoch: {epoch:02d}, '
+              f'Loss: {loss:.4f}, '
+              f'Train: {100 * train_acc:.2f}%, '
+              f'Valid: {100 * valid_acc:.2f}% '
+              f'Test: {100 * 0:.2f}%')
+    
+    
+    
 if __name__ == "__main__":
     device = "cuda"
     args = {
