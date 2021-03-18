@@ -52,6 +52,13 @@ def save_batch(loader, name):
         break
 
 
+def get_sparse_dataset(dataset_name):
+    dataset_eval = PygNodePropPredDataset(name=dataset_name, transform=T.ToSparseTensor())
+    eval_data = dataset_eval[0]
+    eval_split_idx = dataset_eval.get_idx_split()
+    return dataset_eval, eval_data, eval_split_idx
+
+
 if __name__ == "__main__":
     data = get_product_clusters()
     # save_batch(data)
