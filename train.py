@@ -6,6 +6,12 @@ import models
 from tqdm import tqdm
 import torch_geometric.transforms as T
 import copy
+import time
+import collections
+import pickle
+
+# Save test outputs to globally to a file
+data = collections.defaultdict(list)
 
 @torch.enable_grad()
 def train(model, data_loader, optimizer, device):
@@ -66,9 +72,9 @@ def test(model, data, split_idx, evaluator):
 @torch.no_grad()
 def test_cluster(model, data_loader, evaluator, device):
     model.eval()
-    train_preds = []
+    train_preds = [] 
     val_preds = []
-    # test_preds = []
+    test_preds = []
 
     train_labels = []
     val_labels = []
@@ -118,6 +124,9 @@ def print_scores(epoch, loss, train_acc, valid_acc, test_acc):
           f'Valid: {100 * valid_acc:.2f}% '
           f'Test: {100 * test_acc:.2f}%')
 
+def save_data(obj, name):
+    with open(f"data-{name}.pkl", "wb") as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
     device = "cuda"
@@ -133,7 +142,7 @@ if __name__ == "__main__":
     dataset_name = "ogbn-products"
 
     cluster_data, dataset, data, split_idx = ld.get_product_clusters()
-    data_loader = ld.get_cluster_batches(cluster_data, 4)
+    data_loader = ld.get_cluster_batches(cluster_data, 32)
     evaluator = Evaluator(name=dataset_name)
 
     # dataset_eval, eval_data, eval_split_idx = ld.get_sparse_dataset(dataset_name)
@@ -155,7 +164,14 @@ if __name__ == "__main__":
         result = test_cluster(model, data_loader, evaluator, device)
         train_acc, valid_acc = result
         print_scores(epoch, loss, train_acc, valid_acc, 0)
+        
+        # Save loss and accuracies to data dictionary 
+        data["loss"].append(loss)
+        data["train"].append(train_acc)
+        data["val"].append(valid_acc)
+
         # TODO: Save the model if the best valid acc is higher
         pass
 
-
+    time_str = str(time.time())
+    save_data(data, time_str)
