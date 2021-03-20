@@ -7,9 +7,9 @@ from tqdm import tqdm
 import time
 import collections
 import pickle
-
-# Save test outputs to globally to a file
-data = collections.defaultdict(list)
+import copy
+from datetime import datetime
+import os
 
 @torch.enable_grad()
 def train(model, data_loader, optimizer, device):
@@ -58,12 +58,12 @@ def test(model, data, split_idx, evaluator):
         'y_true': data.y[split_idx['valid']],
         'y_pred': y_pred[split_idx['valid']],
     })['acc']
-    # test_acc = evaluator.eval({
-    #     'y_true': data.y[split_idx['test']],
-    #     'y_pred': y_pred[split_idx['test']],
-    # })['acc']
+    test_acc = evaluator.eval({
+        'y_true': data.y[split_idx['test']],
+        'y_pred': y_pred[split_idx['test']],
+    })['acc']
 
-    return train_acc, valid_acc
+    return train_acc, valid_acc, test_acc
 
 
 @torch.no_grad()
@@ -134,9 +134,29 @@ def print_scores(epoch, loss, train_acc, valid_acc, test_acc):
           f'Test: {100 * test_acc:.2f}%')
 
 
-def save_data(obj, name):
-    with open(f"data-{name}.pkl", "wb") as f:
+def save_data(obj, path, name):
+    file_name = f"data-{name}.pkl"
+    file_name = os.path.join(path, file_name)
+    with open(file_name, "wb") as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+def save_model(model, args, save_dir):
+    torch.save(model.state_dict(), os.path.join(save_dir, 'model.pt'))
+    args_path = os.path.join(save_dir, 'args.pkl')
+    with open(args_path, 'wb') as f:
+        pickle.dump(args, f)
+
+
+def load_model(save_dir):
+    args_path = os.path.join(save_dir, 'args.pkl')
+    model_path = os.path.join(save_dir, 'model.pt')
+    with open(args_path, 'rb') as f:
+        args = pickle.load(f)
+
+    model = models.get_model(args)
+    model.load_state_dict(torch.load(model_path))
+    return args, model
 
 
 if __name__ == "__main__":
@@ -148,37 +168,34 @@ if __name__ == "__main__":
         'hidden_dim': 256,
         'dropout': 0.5,
         'lr': 0.001,
-        'epochs': 3,
+        'epochs': 1,
         'return_embeds': False,
         # 'model_type': 'GraphSage',
         'model_type': 'GCN',
         'heads': 1,
         'batch_size': 4
     }
-
     dataset_name = "ogbn-products"
+
+    save_time = datetime.now().strftime("%m-%d_%H_%M_%S")
+    save_dir = os.path.join("save", args['model_type'] + "_" + save_time)
+    os.makedirs(save_dir)
+    print("SAVE PATH:", save_dir)
 
     cluster_data, dataset, data, split_idx = ld.get_product_clusters()
     data_loader = ld.get_cluster_batches(cluster_data, args['batch_size'])
     evaluator = Evaluator(name=dataset_name)
+    args['input_dim'] = data.num_features
+    args['output_dim'] = dataset.num_classes
 
-    # Returns full dataset un-clustered. Not needed for current impl but might be used later
-    # dataset_eval, eval_data, eval_split_idx = ld.get_sparse_dataset(dataset_name)
-
-    model = models.get_model(input_dim=data.num_features,
-                             output_dim=dataset.num_classes,
-                             args=args)
-    print(model)
+    model = models.get_model(args)
 
     model.reset_parameters()
     optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
     loss_fn = F.nll_loss
     model.to(device)
-    scores = {'loss': [],
-              'train': [],
-              'val': [],
-              'test': []}
 
+    scores = {'loss': [], 'train': [], 'val': [], 'test': []}
     best_model = None
     best_valid_acc = 0
 
@@ -187,14 +204,25 @@ if __name__ == "__main__":
         result = test_cluster(model, data_loader, evaluator, device)
         train_acc, valid_acc, test_acc = result
         print_scores(epoch, loss, train_acc, valid_acc, test_acc)
-        
-        # Save loss and accuracies to data dictionary 
+
+        # Save loss and accuracies to data dictionary
         scores["loss"].append(loss)
         scores["train"].append(train_acc)
         scores["val"].append(valid_acc)
+        scores["test"].append(test_acc)
 
-        # TODO: Save the model if the best valid acc is higher
-        pass
+        # copy model params
+        if valid_acc > best_valid_acc:
+            best_model = copy.deepcopy(model)
 
-    time_str = str(time.time())
-    save_data(scores, time_str)
+    save_model(model, args, save_dir)
+    save_data(scores, save_dir, "scores")
+
+    # save_dir = os.path.join('save', 'GCN_03-19_22_05_24')
+    # prev_args, model = load_model(save_dir)
+    # model.to(device)
+    # result = test_cluster(model, data_loader, evaluator, device)
+    # print(result)
+
+
+

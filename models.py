@@ -3,8 +3,11 @@ from torch_geometric.nn import GCNConv
 import graphSAGE
 
 
-def get_model(input_dim, output_dim, args):
+def get_model(args):
+    input_dim = args['input_dim']
+    output_dim = args['output_dim']
     model_type = args['model_type']
+
     if model_type == 'GraphSage' or model_type == 'GAT':
         print(model_type)
         return graphSAGE.GNNStack(input_dim, args['hidden_dim'], output_dim, args)
