@@ -28,18 +28,40 @@ class ResidualMP(torch.nn.Module):
         self.num_layers = args.num_layers
         self.dropout = args.dropout
         self.emb = emb
+        post_hidden = hidden_dim
 
         # May want to change input/hidden/output dim?
-        self.convs.append(DeeperGraphSage(input_dim, hidden_dim, hidden_dim=args.message_hidden, dropout=args.dropout))
+        self.convs.append(DeeperGraphSage(input_dim, hidden_dim, hidden_dim=args.message_hidden, dropout=args.dropout, first=True))
         for l in range(args.num_layers-1):
             self.convs.append(
                 DeeperGraphSage(hidden_dim, hidden_dim, hidden_dim=args.message_hidden, dropout=args.dropout))
 
+        # self.post_mp = nn.Sequential(
+        #     nn.Linear(hidden_dim, hidden_dim),
+        #     nn.ReLU(),
+        #     nn.Dropout(args.dropout),
+        #     nn.Linear(hidden_dim, output_dim))
+
         self.post_mp = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
+            ResNetBlock(
+                nn.Sequential(
+                    nn.Linear(post_hidden, post_hidden),
+                    nn.Dropout(args.dropout),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(post_hidden),
+                    # nn.Linear(post_hidden, post_hidden)
+                )),
+            ResNetBlock(
+                nn.Sequential(
+                    nn.Linear(post_hidden, post_hidden),
+                    nn.Dropout(args.dropout),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(post_hidden),
+                    # nn.Linear(post_hidden, post_hidden),
+                )),
             nn.Dropout(args.dropout),
-            nn.Linear(hidden_dim, output_dim))
+            nn.Linear(post_hidden, output_dim)
+        )
 
     def forward(self, x, edge_index):
 
@@ -64,7 +86,7 @@ class ResidualMP(torch.nn.Module):
 
 
 class DeeperGraphSage(MessagePassing):
-    def __init__(self, in_channels, out_channels, hidden_dim, normalize=True, dropout=0.5, bias=False, **kwargs):
+    def __init__(self, in_channels, out_channels, hidden_dim, normalize=True, dropout=0.5, first=False, bias=False, **kwargs):
         super(DeeperGraphSage, self).__init__(**kwargs)
 
         self.in_channels = in_channels
@@ -73,17 +95,19 @@ class DeeperGraphSage(MessagePassing):
         self.dropout = dropout
 
         self.lin_l = nn.Linear(in_channels, out_channels)
-        self.lin_r = nn.Linear(in_channels, out_channels)
         # This has the residual of the graphsage message at the output
         # Could look at a deeper version?
-        self.mlp = nn.Sequential(
+        self.first = first
+        if self.first:
+            self.r_adjust = nn.Linear(in_channels, out_channels)
+        self.lin_r = nn.Sequential(
             ResNetBlock(
                 nn.Sequential(
                     nn.Linear(out_channels, hidden_dim),
                     nn.Dropout(dropout),
                     nn.ReLU(),
                     nn.BatchNorm1d(hidden_dim),
-                    nn.Linear(hidden_dim, out_channels)
+                    # nn.Linear(hidden_dim, out_channels)
                 )
             ),
             ResNetBlock(
@@ -92,12 +116,10 @@ class DeeperGraphSage(MessagePassing):
                     nn.Dropout(dropout),
                     nn.ReLU(),
                     nn.BatchNorm1d(hidden_dim),
-                    nn.Linear(hidden_dim, out_channels)
+                    # nn.Linear(hidden_dim, out_channels)
                 )
             ),
         )
-
-        self.reset_parameters()
 
     def reset_parameters(self):
         self.lin_l.reset_parameters()
@@ -106,9 +128,10 @@ class DeeperGraphSage(MessagePassing):
     def forward(self, x, edge_index, size=None):
 
         z = self.propagate(edge_index, x=(x, x), dim_size=x.shape)
+        if self.first:
+            z = self.r_adjust(z)
 
-        prop = self.lin_l(x) + self.lin_r(z)
-        out = self.mlp(prop)
+        out = self.lin_l(x) + self.lin_r(z)
 
         if self.normalize:
             out = F.normalize(out)

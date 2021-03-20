@@ -83,15 +83,15 @@ class DeeperGraphSage(MessagePassing):
                     nn.Linear(hidden_dim, out_channels)
                 )
             ),
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(out_channels, hidden_dim),
-                    nn.Dropout(dropout),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(hidden_dim),
-                    nn.Linear(hidden_dim, out_channels)
-                )
-            ),
+            # ResNetBlock(
+            #     nn.Sequential(
+            #         nn.Linear(out_channels, hidden_dim),
+            #         nn.Dropout(dropout),
+            #         nn.ReLU(),
+            #         nn.BatchNorm1d(hidden_dim),
+            #         nn.Linear(hidden_dim, out_channels)
+            #     )
+            # ),
         )
 
         self.lin_r = nn.Sequential(
@@ -105,15 +105,15 @@ class DeeperGraphSage(MessagePassing):
                     nn.Linear(hidden_dim, out_channels)
                 )
             ),
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(out_channels, hidden_dim),
-                    nn.Dropout(dropout),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(hidden_dim),
-                    nn.Linear(hidden_dim, out_channels)
-                )
-            ),
+            # ResNetBlock(
+            #     nn.Sequential(
+            #         nn.Linear(out_channels, hidden_dim),
+            #         nn.Dropout(dropout),
+            #         nn.ReLU(),
+            #         nn.BatchNorm1d(hidden_dim),
+            #         nn.Linear(hidden_dim, out_channels)
+            #     )
+            # ),
         )
 
     def reset_parameters(self):

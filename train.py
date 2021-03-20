@@ -164,7 +164,7 @@ if __name__ == "__main__":
     # device = "cpu"
     args = {
         'device': device,
-        'num_layers': 4,
+        'num_layers': 3,
         'hidden_dim': 256,
         'dropout': 0.5,
         'lr': 0.01,
@@ -174,6 +174,7 @@ if __name__ == "__main__":
         # 'model_type': 'GCN',
         # 'model_type': 'ResPostMP',
         'model_type': 'ResidualMP',
+        # 'model_type': 'ResidualSage',
         'heads': 1,
         'batch_size': 4,
         'post_hidden': 256,

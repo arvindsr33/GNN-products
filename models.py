@@ -3,6 +3,7 @@ from torch_geometric.nn import GCNConv
 import graphSAGE
 import resnet_postmp as res
 import ResidualMP as res_mp
+import ResidualSage as res_sage
 
 
 def get_model(args):
@@ -17,6 +18,8 @@ def get_model(args):
         return res.ResNetPostMP(input_dim, args['hidden_dim'], output_dim, args)
     elif model_type == 'ResidualMP':
         return res_mp.ResidualMP(input_dim, args['hidden_dim'], output_dim, args)
+    elif model_type == 'ResidualSage':
+        return res_sage.ResidualMP(input_dim, args['hidden_dim'], output_dim, args)
     else:
         return GCN(input_dim, args['hidden_dim'], output_dim, args['num_layers'], args['dropout'], args['return_embeds'])
 
