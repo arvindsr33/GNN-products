@@ -85,6 +85,12 @@ class DeeperGraphSage(MessagePassing):
                 nn.BatchNorm1d(hidden_dim),
             )
         )
+        # agg = sum + MLP(sum)
+        # h_l = (W * h_l-1) + sum + MLP(sum)
+        # h_l = (W * h_l-1) + W (h_j)
+
+        # h_l = MLP((W * h_l-1) + W (h_j)) + W * h_l-1
+        # h_l = MLP((W * h_l-1) + W (h_j)) + W * h_l-1
 
     def reset_parameters(self):
         self.lin_l.reset_parameters()
@@ -108,6 +114,6 @@ class DeeperGraphSage(MessagePassing):
 
         # The axis along which to index number of nodes.
         node_dim = self.node_dim
-        out = torch_scatter.scatter(inputs, index=index, dim=node_dim, reduce='mean', dim_size=dim_size)
+        out = torch_scatter.scatter(inputs, index=index, dim=node_dim, reduce='sum', dim_size=dim_size)
 
         return out

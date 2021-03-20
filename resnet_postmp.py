@@ -29,19 +29,17 @@ class ResNetPostMP(torch.nn.Module):
         post_hidden = self.post_hidden
 
         self.convs = nn.ModuleList()
-        # self.convs.append(conv_model(input_dim, hidden_dim))
-
         self.affine = nn.Linear(input_dim, hidden_dim)
-        # assert (args.num_layers >= 2), 'Number of layers is not >=1'
         for l in range(args.num_layers):
             self.convs.append(conv_model(hidden_dim, hidden_dim))
-        # self.convs.append(conv_model(hidden_dim, post_hidden))
 
+        self.bns = torch.nn.ModuleList([torch.nn.BatchNorm1d(hidden_dim)
+                                        for _ in range(args.num_layers)])
 
-        self.post_mp = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.Dropout(args.dropout),
-            nn.Linear(hidden_dim, output_dim))
+        # self.post_mp = nn.Sequential(
+        #     nn.Linear(hidden_dim, hidden_dim),
+        #     nn.Dropout(args.dropout),
+        #     nn.Linear(hidden_dim, output_dim))
 
         # post-message-passing
         # TODO: Make module list
@@ -63,14 +61,20 @@ class ResNetPostMP(torch.nn.Module):
 
     def forward(self, x, edge_index):
 
-        res = self.affine(x)
-        x = F.relu(res)
+        x = self.affine(x)
+        x = F.relu(x)
 
-        for i in range(self.num_layers):
-            x = self.convs[i](x, edge_index)
+        res = self.convs[0](x, edge_index)
+
+        for i in range(1, self.num_layers):
+            x = self.bns[i-1](res)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout)
-            x = x + 0.2 * res
+            res = self.convs[i](x, edge_index) + res
+
+        x = self.bns[-1](res)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout)
 
         x = self.post_mp(x)
 
@@ -119,6 +123,6 @@ class GraphSage(MessagePassing):
 
         # The axis along which to index number of nodes.
         node_dim = self.node_dim
-        out = torch_scatter.scatter(inputs, index=index, dim=node_dim, reduce='mean', dim_size=dim_size)
+        out = torch_scatter.scatter(inputs, index=index, dim=node_dim, reduce='sum', dim_size=dim_size)
 
         return out
