@@ -168,10 +168,10 @@ if __name__ == "__main__":
         'hidden_dim': 256,
         'dropout': 0.5,
         'lr': 0.001,
-        'epochs': 1,
+        'epochs': 100,
         'return_embeds': False,
-        # 'model_type': 'GraphSage',
-        'model_type': 'GCN',
+        'model_type': 'GraphSage',
+        # 'model_type': 'GCN',
         'heads': 1,
         'batch_size': 4
     }
