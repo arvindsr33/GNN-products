@@ -168,7 +168,7 @@ if __name__ == "__main__":
         'hidden_dim': 128,
         'dropout': 0.5,
         'lr': 0.001,
-        'epochs': 50,
+        'epochs': 100,
         'return_embeds': False,
         # 'model_type': 'GraphSage',
         # 'model_type': 'GCN',
@@ -176,7 +176,7 @@ if __name__ == "__main__":
         # 'model_type': 'ResidualMP',
         # 'model_type': 'ResidualSage',
         'heads': 1,
-        'batch_size': 4,
+        'batch_size': 32,
         'post_hidden': 128,
         'message_hidden': 128,
         'normalize': False,
@@ -222,8 +222,9 @@ if __name__ == "__main__":
         if valid_acc > best_valid_acc:
             best_model = copy.deepcopy(model)
 
-    save_model(model, args, save_dir)
-    save_data(scores, save_dir, "scores")
+        # Save after each iteration
+        save_model(model, args, save_dir)
+        save_data(scores, save_dir, "scores")
 
     # save_dir = os.path.join('save', 'GCN_03-19_22_05_24')
     # prev_args, model = load_model(save_dir)
