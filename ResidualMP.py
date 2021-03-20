@@ -75,10 +75,10 @@ class DeeperGraphSage(MessagePassing):
         self.first = first
 
         self.lin_l = nn.Linear(in_channels, out_channels)
-        self.lin_r = nn.Linear(in_channels, out_channels)
+        # self.lin_r = nn.Linear(in_channels, out_channels)
         # This has the residual of the graphsage message at the output
         # Could look at a deeper version?
-        self.mlp = ResNetBlock(
+        self.lin_r = ResNetBlock(
             nn.Sequential(
                 nn.Linear(out_channels, hidden_dim),
                 nn.ReLU(),
@@ -94,7 +94,7 @@ class DeeperGraphSage(MessagePassing):
 
         z = self.propagate(edge_index, x=(x, x), dim_size=x.shape)
         out = self.lin_l(x) + self.lin_r(z)
-        out = self.mlp(out)
+        # out = self.mlp(out)
 
         if self.normalize:
             out = F.normalize(out)

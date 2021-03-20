@@ -29,12 +29,14 @@ class ResNetPostMP(torch.nn.Module):
         post_hidden = self.post_hidden
 
         self.convs = nn.ModuleList()
-        self.convs.append(conv_model(input_dim, hidden_dim))
+        # self.convs.append(conv_model(input_dim, hidden_dim))
 
-        assert (args.num_layers >= 2), 'Number of layers is not >=1'
-        for l in range(args.num_layers-2):
+        self.affine = nn.Linear(input_dim, hidden_dim)
+        # assert (args.num_layers >= 2), 'Number of layers is not >=1'
+        for l in range(args.num_layers):
             self.convs.append(conv_model(hidden_dim, hidden_dim))
-        self.convs.append(conv_model(hidden_dim, post_hidden))
+        # self.convs.append(conv_model(hidden_dim, post_hidden))
+
 
         self.post_mp = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
@@ -61,10 +63,14 @@ class ResNetPostMP(torch.nn.Module):
 
     def forward(self, x, edge_index):
 
+        res = self.affine(x)
+        x = F.relu(res)
+
         for i in range(self.num_layers):
             x = self.convs[i](x, edge_index)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout)
+            x = x + 0.2 * res
 
         x = self.post_mp(x)
 
