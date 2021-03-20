@@ -76,7 +76,7 @@ class ResNetPostMP(torch.nn.Module):
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout)
 
-        x = self.post_mp(x)
+        x = self.post_mp(x + res)
 
         if self.emb:
             return x
