@@ -172,10 +172,12 @@ if __name__ == "__main__":
         'return_embeds': False,
         # 'model_type': 'GraphSage',
         # 'model_type': 'GCN',
-        'model_type': 'ResPostMP',
+        # 'model_type': 'ResPostMP',
+        'model_type': 'ResidualMP',
         'heads': 1,
         'batch_size': 4,
         'post_hidden': 128,
+        'message_hidden': 128,
     }
     dataset_name = "ogbn-products"
 

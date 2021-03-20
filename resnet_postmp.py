@@ -59,6 +59,7 @@ class ResNetPostMP(torch.nn.Module):
                     nn.ReLU(),
                     nn.BatchNorm1d(post_hidden),
                 )),
+            nn.Dropout(args.dropout),
             nn.Linear(post_hidden, output_dim)
         )
 
