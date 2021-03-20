@@ -44,9 +44,17 @@ class GNNStack(torch.nn.Module):
             return GraphSage
         elif model_type == 'GAT':
             return GAT
+        elif model_type == 'torch_geometric_graph_sage':
+          def sgconv(in_channels, out_channels, **kwargs):
+            return pyg_nn.SAGEConv(in_channels, out_channels, normalize=True)
+          return sgconv
+        elif model_type == 'torch_geometric_gat':
+          def gatconv(in_channels, out_channels, heads=1):
+             return pyg_nn.GATConv(in_channels, out_channels, heads)
+          return gatconv
 
-    def forward(self, data, **kwargs):
-        x, edge_index = data, kwargs['edge_index']
+    def forward(self, data, edge_index, **kwargs):
+        x = data
           
         for i in range(self.num_layers):
             x = self.convs[i](x, edge_index)

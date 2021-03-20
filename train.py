@@ -43,10 +43,7 @@ def test(model, data, split_idx, evaluator, use_edge_index=False):
     print(data)
 
     if use_edge_index:
-        edge_index = data.edge_index
-        print(edge_index.shape)
-        
-        out = model(data.x, edge_index=edge_index)
+        out = model(data.x, data.edge_index)
     else:
         out = model(data.x, data.adj_t)
     print("Out done")
@@ -111,9 +108,10 @@ def run(model,data_loader,split_idx, extra_args=None):
         loss = train(model, data_loader, optimizer, device)
         model.to("cpu")
         if extra_args.get('eval_small', 0) == 1:
-          result = test(model, data_loader.dataset[0], split_idx, evaluator, use_edge_index=True)
+          eval_data = ld.load_small()
+          result = test(model, eval_data, split_idx, evaluator, use_edge_index=True)
         else:
-          result = test(model, eval_data, eval_split_idx, evaluator, use_edge_index=extra_args['use_edge_index'])
+          result = test(model, eval_data, eval_split_idx, evaluator, use_edge_index=False)
         train_acc, valid_acc = result
         print(f'Epoch: {epoch:02d}, '
               f'Loss: {loss:.4f}, '
