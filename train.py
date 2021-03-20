@@ -164,11 +164,11 @@ if __name__ == "__main__":
     # device = "cpu"
     args = {
         'device': device,
-        'num_layers': 3,
+        'num_layers': 4,
         'hidden_dim': 256,
         'dropout': 0.5,
-        'lr': 0.001,
-        'epochs': 100,
+        'lr': 0.01,
+        'epochs': 50,
         'return_embeds': False,
         # 'model_type': 'GraphSage',
         # 'model_type': 'GCN',
@@ -178,6 +178,7 @@ if __name__ == "__main__":
         'batch_size': 4,
         'post_hidden': 256,
         'message_hidden': 256,
+        'normalize': False,
     }
     dataset_name = "ogbn-products"
 
@@ -195,7 +196,7 @@ if __name__ == "__main__":
     model = models.get_model(args)
     print(model)
 
-    model.reset_parameters()
+    # model.reset_parameters()
     optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
     loss_fn = F.nll_loss
     model.to(device)

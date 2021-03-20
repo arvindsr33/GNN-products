@@ -72,11 +72,8 @@ class DeeperGraphSage(MessagePassing):
         self.normalize = normalize
         self.dropout = dropout
 
-        self.lin_l = nn.Linear(in_channels, out_channels)
-        self.lin_r = nn.Linear(in_channels, out_channels)
-        # This has the residual of the graphsage message at the output
-        # Could look at a deeper version?
-        self.mlp = nn.Sequential(
+        self.lin_l = nn.Sequential(
+            nn.Linear(in_channels, out_channels),
             ResNetBlock(
                 nn.Sequential(
                     nn.Linear(out_channels, hidden_dim),
@@ -97,7 +94,27 @@ class DeeperGraphSage(MessagePassing):
             ),
         )
 
-        self.reset_parameters()
+        self.lin_r = nn.Sequential(
+            nn.Linear(in_channels, out_channels),
+            ResNetBlock(
+                nn.Sequential(
+                    nn.Linear(out_channels, hidden_dim),
+                    nn.Dropout(dropout),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(hidden_dim),
+                    nn.Linear(hidden_dim, out_channels)
+                )
+            ),
+            ResNetBlock(
+                nn.Sequential(
+                    nn.Linear(out_channels, hidden_dim),
+                    nn.Dropout(dropout),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(hidden_dim),
+                    nn.Linear(hidden_dim, out_channels)
+                )
+            ),
+        )
 
     def reset_parameters(self):
         self.lin_l.reset_parameters()
@@ -107,8 +124,7 @@ class DeeperGraphSage(MessagePassing):
 
         z = self.propagate(edge_index, x=(x, x), dim_size=x.shape)
 
-        prop = self.lin_l(x) + self.lin_r(z)
-        out = self.mlp(prop)
+        out = self.lin_l(x) + self.lin_r(z)
 
         if self.normalize:
             out = F.normalize(out)
