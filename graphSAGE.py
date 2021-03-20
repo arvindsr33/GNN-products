@@ -5,9 +5,11 @@ import torch.nn.functional as F
 import torch_geometric.utils as pyg_utils
 from torch_geometric.nn.conv import MessagePassing
 
+
 class objectview(object):
     def __init__(self, d):
         self.__dict__ = d
+
 
 class GNNStack(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, arg, emb=False):

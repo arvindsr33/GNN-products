@@ -75,7 +75,7 @@ def test_cluster(model, data_loader, evaluator, device):
 
     train_labels = []
     val_labels = []
-    # test_labels = []
+    test_labels = []
 
     # get the preds of each cluster
     with tqdm(total=len(data_loader)) as progress_bar:
@@ -95,12 +95,20 @@ def test_cluster(model, data_loader, evaluator, device):
                 val_preds.append(val_pred.cpu())
                 val_labels.append(val_label.cpu())
 
+            if batch.test_mask.sum() != 0:
+                test_pred = out[batch.test_mask].argmax(dim=1, keepdim=True)
+                test_label = batch.y[batch.test_mask]
+                test_preds.append(test_pred.cpu())
+                test_labels.append(test_label.cpu())
+
             progress_bar.update(1)
 
     train_label = torch.cat(train_labels, dim=0)
     train_pred = torch.cat(train_preds, dim=0)
     val_label = torch.cat(val_labels, dim=0)
     val_pred = torch.cat(val_preds, dim=0)
+    test_label = torch.cat(test_labels, dim=0)
+    test_pred = torch.cat(test_preds, dim=0)
 
     train_acc = evaluator.eval({
         'y_true': train_label,
@@ -110,8 +118,12 @@ def test_cluster(model, data_loader, evaluator, device):
         'y_true': val_label,
         'y_pred': val_pred
     })['acc']
+    test_acc = evaluator.eval({
+        'y_true': test_label,
+        'y_pred': test_pred
+    })['acc']
 
-    return train_acc, val_acc
+    return train_acc, val_acc, test_acc
 
 
 def print_scores(epoch, loss, train_acc, valid_acc, test_acc):
@@ -138,8 +150,8 @@ if __name__ == "__main__":
         'lr': 0.001,
         'epochs': 3,
         'return_embeds': False,
-        'model_type': 'GraphSage',
-        # 'model_type': 'GCN',
+        # 'model_type': 'GraphSage',
+        'model_type': 'GCN',
         'heads': 1,
         'batch_size': 4
     }
@@ -173,8 +185,8 @@ if __name__ == "__main__":
     for epoch in range(1, 1 + args["epochs"]):
         loss = train(model, data_loader, optimizer, device)
         result = test_cluster(model, data_loader, evaluator, device)
-        train_acc, valid_acc = result
-        print_scores(epoch, loss, train_acc, valid_acc, 0)
+        train_acc, valid_acc, test_acc = result
+        print_scores(epoch, loss, train_acc, valid_acc, test_acc)
         
         # Save loss and accuracies to data dictionary 
         scores["loss"].append(loss)
