@@ -167,13 +167,15 @@ if __name__ == "__main__":
         'num_layers': 3,
         'hidden_dim': 256,
         'dropout': 0.5,
-        'lr': 0.001,
+        'lr': 0.01,
         'epochs': 100,
         'return_embeds': False,
-        'model_type': 'GraphSage',
+        # 'model_type': 'GraphSage',
         # 'model_type': 'GCN',
+        'model_type': 'ResPostMP',
         'heads': 1,
-        'batch_size': 4
+        'batch_size': 4,
+        'post_hidden': 128,
     }
     dataset_name = "ogbn-products"
 
@@ -189,6 +191,7 @@ if __name__ == "__main__":
     args['output_dim'] = dataset.num_classes
 
     model = models.get_model(args)
+    print(model)
 
     model.reset_parameters()
     optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])

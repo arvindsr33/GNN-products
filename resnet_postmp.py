@@ -15,6 +15,10 @@ class ResNetBlock(torch.nn.Module):
     def forward(self, inputs):
         return self.module(inputs) + inputs
 
+    def reset_parameters(self):
+        for l in self.module:
+            l.reset_parameters()
+
 
 class ResNetPostMP(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, arg, emb=False):
@@ -26,31 +30,36 @@ class ResNetPostMP(torch.nn.Module):
         assert (args.num_layers >= 1), 'Number of layers is not >=1'
         for l in range(args.num_layers-1):
             self.convs.append(conv_model(hidden_dim, hidden_dim))
+        self.post_hidden = args.post_hidden
+        post_hidden = self.post_hidden
 
         # post-message-passing
         self.post_mp = nn.Sequential(
+            nn.Linear(hidden_dim, post_hidden),
             ResNetBlock(
                 nn.Sequential(
-                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(post_hidden, post_hidden),
                     nn.Dropout(args.dropout),
                     nn.ReLU(),
-                    nn.BatchNorm1d(hidden_dim))
-            ),
+                    nn.BatchNorm1d(post_hidden),
+                    nn.Linear(post_hidden, post_hidden)
+                )),
             ResNetBlock(
                 nn.Sequential(
-                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(post_hidden, post_hidden),
                     nn.Dropout(args.dropout),
                     nn.ReLU(),
-                    nn.BatchNorm1d(hidden_dim))
-            ),
+                    nn.BatchNorm1d(post_hidden),
+                    nn.Linear(post_hidden, post_hidden),
+                )),
             ResNetBlock(
                 nn.Sequential(
-                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(post_hidden, post_hidden),
                     nn.Dropout(args.dropout),
                     nn.ReLU(),
-                    nn.BatchNorm1d(hidden_dim))
-            ),
-            nn.Linear(hidden_dim, output_dim)
+                    nn.BatchNorm1d(post_hidden),
+                )),
+            nn.Linear(post_hidden, output_dim)
         )
 
         self.dropout = args.dropout
@@ -78,8 +87,6 @@ class ResNetPostMP(torch.nn.Module):
     def reset_parameters(self):
         for c in self.convs:
             c.reset_parameters()
-        self.post_mp[0].reset_parameters()
-        self.post_mp[2].reset_parameters()
 
 
 class GraphSage(MessagePassing):

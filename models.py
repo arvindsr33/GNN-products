@@ -1,6 +1,7 @@
 import torch
 from torch_geometric.nn import GCNConv
 import graphSAGE
+import resnet_postmp as res
 
 
 def get_model(args):
@@ -11,6 +12,9 @@ def get_model(args):
     if model_type == 'GraphSage' or model_type == 'GAT':
         print(model_type)
         return graphSAGE.GNNStack(input_dim, args['hidden_dim'], output_dim, args)
+    elif model_type == 'ResPostMP':
+        return res.ResNetPostMP(input_dim, args['hidden_dim'], output_dim, args)
+
     else:
         return GCN(input_dim, args['hidden_dim'], output_dim, args['num_layers'], args['dropout'], args['return_embeds'])
 

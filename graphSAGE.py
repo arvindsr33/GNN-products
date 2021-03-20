@@ -55,8 +55,8 @@ class GNNStack(torch.nn.Module):
     def reset_parameters(self):
         for c in self.convs:
             c.reset_parameters()
-        self.post_mp[0].reset_parameters()
-        self.post_mp[2].reset_parameters()
+        # self.post_mp[0].reset_parameters()
+        # self.post_mp[2].reset_parameters()
 
 
 class GAT(MessagePassing):
