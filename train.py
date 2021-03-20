@@ -167,7 +167,7 @@ if __name__ == "__main__":
         'num_layers': 3,
         'hidden_dim': 256,
         'dropout': 0.5,
-        'lr': 0.01,
+        'lr': 0.001,
         'epochs': 100,
         'return_embeds': False,
         # 'model_type': 'GraphSage',
@@ -176,8 +176,8 @@ if __name__ == "__main__":
         'model_type': 'ResidualMP',
         'heads': 1,
         'batch_size': 4,
-        'post_hidden': 128,
-        'message_hidden': 128,
+        'post_hidden': 256,
+        'message_hidden': 256,
     }
     dataset_name = "ogbn-products"
 

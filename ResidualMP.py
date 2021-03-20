@@ -25,10 +25,12 @@ class ResidualMP(torch.nn.Module):
         super(ResidualMP, self).__init__()
         args = objectview(arg)
         self.convs = nn.ModuleList()
-        self.convs.append(DeeperGraphSage(input_dim, hidden_dim, hidden_dim=args.message_hidden, dropout=args.dropout))
         self.num_layers = args.num_layers
+        self.dropout = args.dropout
+        self.emb = emb
 
-        assert (args.num_layers >= 1), 'Number of layers is not >=1'
+        # May want to change input/hidden/output dim?
+        self.convs.append(DeeperGraphSage(input_dim, hidden_dim, hidden_dim=args.message_hidden, dropout=args.dropout))
         for l in range(args.num_layers-1):
             self.convs.append(
                 DeeperGraphSage(hidden_dim, hidden_dim, hidden_dim=args.message_hidden, dropout=args.dropout))
@@ -37,40 +39,6 @@ class ResidualMP(torch.nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
             nn.Dropout(args.dropout),
             nn.Linear(hidden_dim, output_dim))
-
-        # post-message-passing
-        # self.post_hidden = args.post_hidden
-        # self.post_mp = nn.Sequential(
-        #     nn.Linear(hidden_dim, post_hidden),
-        #     ResNetBlock(
-        #         nn.Sequential(
-        #             nn.Linear(post_hidden, post_hidden),
-        #             nn.Dropout(args.dropout),
-        #             nn.ReLU(),
-        #             nn.BatchNorm1d(post_hidden),
-        #             nn.Linear(post_hidden, post_hidden)
-        #         )),
-        #     ResNetBlock(
-        #         nn.Sequential(
-        #             nn.Linear(post_hidden, post_hidden),
-        #             nn.Dropout(args.dropout),
-        #             nn.ReLU(),
-        #             nn.BatchNorm1d(post_hidden),
-        #             nn.Linear(post_hidden, post_hidden),
-        #         )),
-        #     ResNetBlock(
-        #         nn.Sequential(
-        #             nn.Linear(post_hidden, post_hidden),
-        #             nn.Dropout(args.dropout),
-        #             nn.ReLU(),
-        #             nn.BatchNorm1d(post_hidden),
-        #         )),
-        #     nn.Linear(post_hidden, output_dim)
-        # )
-
-        self.dropout = args.dropout
-
-        self.emb = emb
 
     def forward(self, x, edge_index):
 
@@ -95,7 +63,7 @@ class ResidualMP(torch.nn.Module):
 
 
 class DeeperGraphSage(MessagePassing):
-    def __init__(self, in_channels, out_channels, hidden_dim=128, normalize=True, dropout=0.5, bias=False, **kwargs):
+    def __init__(self, in_channels, out_channels, hidden_dim, normalize=True, dropout=0.5, bias=False, **kwargs):
         super(DeeperGraphSage, self).__init__(**kwargs)
 
         self.in_channels = in_channels
@@ -103,28 +71,20 @@ class DeeperGraphSage(MessagePassing):
         self.normalize = normalize
         self.dropout = dropout
 
-        self.lin_l = nn.Linear(in_channels, in_channels)
-        self.lin_r = nn.Linear(in_channels, in_channels)
+        self.lin_l = nn.Linear(in_channels, out_channels)
+        self.lin_r = nn.Linear(in_channels, out_channels)
+        # This has the residual of the graphsage message at the output
+        # Could look at a deeper version?
         self.mlp = nn.Sequential(
-            nn.Linear(in_channels, hidden_dim),
             ResNetBlock(
                 nn.Sequential(
-                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Linear(out_channels, hidden_dim),
                     nn.Dropout(dropout),
                     nn.ReLU(),
                     nn.BatchNorm1d(hidden_dim),
-                    nn.Linear(hidden_dim, hidden_dim)
-                )),
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(hidden_dim, hidden_dim),
-                    nn.Dropout(dropout),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(hidden_dim),
-                    nn.Linear(hidden_dim, hidden_dim),
-                )),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, out_channels)
+                    nn.Linear(hidden_dim, out_channels)
+                )
+            ),
         )
 
         self.reset_parameters()

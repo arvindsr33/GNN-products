@@ -25,17 +25,20 @@ class ResNetPostMP(torch.nn.Module):
         super(ResNetPostMP, self).__init__()
         args = objectview(arg)
         conv_model = GraphSage
-        self.convs = nn.ModuleList()
-        self.convs.append(conv_model(input_dim, hidden_dim))
-        assert (args.num_layers >= 1), 'Number of layers is not >=1'
-        for l in range(args.num_layers-1):
-            self.convs.append(conv_model(hidden_dim, hidden_dim))
         self.post_hidden = args.post_hidden
         post_hidden = self.post_hidden
 
+        self.convs = nn.ModuleList()
+        self.convs.append(conv_model(input_dim, hidden_dim))
+
+        assert (args.num_layers >= 2), 'Number of layers is not >=1'
+        for l in range(args.num_layers-2):
+            self.convs.append(conv_model(hidden_dim, hidden_dim))
+        self.convs.append(conv_model(hidden_dim, post_hidden))
+
         # post-message-passing
+        # TODO: Make module list
         self.post_mp = nn.Sequential(
-            nn.Linear(hidden_dim, post_hidden),
             ResNetBlock(
                 nn.Sequential(
                     nn.Linear(post_hidden, post_hidden),
@@ -58,6 +61,7 @@ class ResNetPostMP(torch.nn.Module):
                     nn.Dropout(args.dropout),
                     nn.ReLU(),
                     nn.BatchNorm1d(post_hidden),
+                    nn.Linear(post_hidden, post_hidden),
                 )),
             nn.Dropout(args.dropout),
             nn.Linear(post_hidden, output_dim)
