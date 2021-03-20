@@ -141,7 +141,7 @@ if __name__ == "__main__":
         'model_type': 'GraphSage',
         # 'model_type': 'GCN',
         'heads': 1,
-        'batch_size': 1
+        'batch_size': 4
     }
 
     dataset_name = "ogbn-products"
@@ -162,7 +162,10 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
     loss_fn = F.nll_loss
     model.to(device)
-    scores = {}
+    scores = {'loss': [],
+              'train': [],
+              'val': [],
+              'test': []}
 
     best_model = None
     best_valid_acc = 0
