@@ -25,16 +25,16 @@ class ResNetPostMP(torch.nn.Module):
         self.convs.append(conv_model(input_dim, hidden_dim))
         assert (args.num_layers >= 1), 'Number of layers is not >=1'
         for l in range(args.num_layers-1):
-            self.convs.append(conv_model(args.heads * hidden_dim, hidden_dim))
+            self.convs.append(conv_model(hidden_dim, hidden_dim))
 
         # post-message-passing
         self.post_mp = nn.Sequential(
             ResNetBlock(
                 nn.Sequential(
-                nn.Linear(hidden_dim, hidden_dim),
-                nn.Dropout(args.dropout),
-                nn.ReLU(),
-                nn.BatchNorm1d(hidden_dim))
+                    nn.Linear(hidden_dim, hidden_dim),
+                    nn.Dropout(args.dropout),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(hidden_dim))
             ),
             ResNetBlock(
                 nn.Sequential(
