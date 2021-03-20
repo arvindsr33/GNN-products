@@ -121,9 +121,11 @@ def print_scores(epoch, loss, train_acc, valid_acc, test_acc):
           f'Valid: {100 * valid_acc:.2f}% '
           f'Test: {100 * test_acc:.2f}%')
 
+
 def save_data(obj, name):
     with open(f"data-{name}.pkl", "wb") as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
 
 if __name__ == "__main__":
     device = "cuda"
@@ -134,13 +136,13 @@ if __name__ == "__main__":
         'hidden_dim': 256,
         'dropout': 0.5,
         'lr': 0.001,
-        'epochs': 100,
+        'epochs': 3,
         'return_embeds': False,
         'model_type': 'GraphSage',
+        # 'model_type': 'GCN',
         'heads': 1,
         'batch_size': 1
     }
-
 
     dataset_name = "ogbn-products"
 
@@ -148,6 +150,7 @@ if __name__ == "__main__":
     data_loader = ld.get_cluster_batches(cluster_data, args['batch_size'])
     evaluator = Evaluator(name=dataset_name)
 
+    # Returns full dataset un-clustered. Not needed for current impl but might be used later
     # dataset_eval, eval_data, eval_split_idx = ld.get_sparse_dataset(dataset_name)
 
     model = models.get_model(input_dim=data.num_features,
@@ -159,6 +162,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
     loss_fn = F.nll_loss
     model.to(device)
+    scores = {}
 
     best_model = None
     best_valid_acc = 0
@@ -170,12 +174,12 @@ if __name__ == "__main__":
         print_scores(epoch, loss, train_acc, valid_acc, 0)
         
         # Save loss and accuracies to data dictionary 
-        data["loss"].append(loss)
-        data["train"].append(train_acc)
-        data["val"].append(valid_acc)
+        scores["loss"].append(loss)
+        scores["train"].append(train_acc)
+        scores["val"].append(valid_acc)
 
         # TODO: Save the model if the best valid acc is higher
         pass
 
     time_str = str(time.time())
-    save_data(data, time_str)
+    save_data(scores, time_str)

@@ -33,7 +33,6 @@ class GCN(torch.nn.Module):
 
         # Skip classification layer and return node embeddings
         self.return_embeds = return_embeds
-        print(self)
 
     def reset_parameters(self):
         for conv in self.convs:

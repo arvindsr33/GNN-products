@@ -146,32 +146,21 @@ class GraphSage(MessagePassing):
 
     def forward(self, x, edge_index, size=None):
 
-        z = self.propagate(edge_index, x=(x, x))
+        z = self.propagate(edge_index, x=(x, x), dim_size=x.shape)
 
-        print("finished pop")
-        print(x.shape, z.shape)
-        z1 = self.lin_l(x) + self.lin_r(z)
+        out = self.lin_l(x) + self.lin_r(z)
         if self.normalize:
-            z1 = F.normalize(z1, p=2, dim=1)
-        out = z1
-
+            out = F.normalize(out)
         return out
 
     def message(self, x_j):
-        print("")
-        print("message")
-        print(x_j.shape)
         return x_j
 
     def aggregate(self, inputs, index, dim_size=None):
 
         # The axis along which to index number of nodes.
-        node_dim = 0
-        print("")
-        print("in agg")
-        print(inputs.shape)
-        out = torch_scatter.scatter(inputs, index=index, dim=node_dim, reduce='mean')
-        print(out.shape)
+        node_dim = self.node_dim
+        out = torch_scatter.scatter(inputs, index=index, dim=node_dim, reduce='mean', dim_size=dim_size)
 
         return out
 
