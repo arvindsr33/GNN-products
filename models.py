@@ -1,5 +1,15 @@
 import torch
 from torch_geometric.nn import GCNConv
+import graphSAGE
+
+
+def get_model(input_dim, output_dim, args):
+    model_type = args['model_type']
+    if model_type == 'GraphSage' or model_type == 'GAT':
+        print(model_type)
+        return graphSAGE.GNNStack(input_dim, args['hidden_dim'], output_dim, args)
+    else:
+        return GCN(input_dim, args['hidden_dim'], output_dim, args['num_layers'], args['dropout'], args['return_embeds'])
 
 
 class GCN(torch.nn.Module):
@@ -19,7 +29,6 @@ class GCN(torch.nn.Module):
 
         self.softmax = torch.nn.LogSoftmax(dim=1)
 
-        # Probability of an element to be zeroed
         self.dropout = dropout
 
         # Skip classification layer and return node embeddings

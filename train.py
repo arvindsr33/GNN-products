@@ -4,8 +4,7 @@ from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
 import load_data as ld
 import models
 from tqdm import tqdm
-import torch_geometric.transforms as T
-import copy
+
 
 @torch.enable_grad()
 def train(model, data_loader, optimizer, device):
@@ -32,7 +31,6 @@ def train(model, data_loader, optimizer, device):
             total_nodes += nodes
             progress_bar.update(1)
 
-    # model.to("cpu")
     return total_loss / total_nodes
 
 
@@ -121,6 +119,7 @@ def print_scores(epoch, loss, train_acc, valid_acc, test_acc):
 
 if __name__ == "__main__":
     device = "cuda"
+    # device = "cpu"
     args = {
         'device': device,
         'num_layers': 3,
@@ -128,19 +127,25 @@ if __name__ == "__main__":
         'dropout': 0.5,
         'lr': 0.001,
         'epochs': 100,
+        'return_embeds': False,
+        'model_type': 'GraphSage',
+        'heads': 1,
+        'batch_size': 1
     }
+
 
     dataset_name = "ogbn-products"
 
     cluster_data, dataset, data, split_idx = ld.get_product_clusters()
-    data_loader = ld.get_cluster_batches(cluster_data, 4)
+    data_loader = ld.get_cluster_batches(cluster_data, args['batch_size'])
     evaluator = Evaluator(name=dataset_name)
 
     # dataset_eval, eval_data, eval_split_idx = ld.get_sparse_dataset(dataset_name)
 
-    model = models.GCN(data.num_features, args['hidden_dim'],
-                dataset.num_classes, args['num_layers'],
-                args['dropout'])
+    model = models.get_model(input_dim=data.num_features,
+                             output_dim=dataset.num_classes,
+                             args=args)
+    print(model)
 
     model.reset_parameters()
     optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
