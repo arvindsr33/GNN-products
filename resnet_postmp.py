@@ -36,32 +36,19 @@ class ResNetPostMP(torch.nn.Module):
             self.convs.append(conv_model(hidden_dim, hidden_dim))
         self.convs.append(conv_model(hidden_dim, post_hidden))
 
+        self.post_mp = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Dropout(args.dropout),
+            nn.Linear(hidden_dim, output_dim))
+
         # post-message-passing
         # TODO: Make module list
         self.post_mp = nn.Sequential(
             ResNetBlock(
                 nn.Sequential(
                     nn.Linear(post_hidden, post_hidden),
-                    nn.Dropout(args.dropout),
                     nn.ReLU(),
                     nn.BatchNorm1d(post_hidden),
-                    nn.Linear(post_hidden, post_hidden)
-                )),
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(post_hidden, post_hidden),
-                    nn.Dropout(args.dropout),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(post_hidden),
-                    nn.Linear(post_hidden, post_hidden),
-                )),
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(post_hidden, post_hidden),
-                    nn.Dropout(args.dropout),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(post_hidden),
-                    nn.Linear(post_hidden, post_hidden),
                 )),
             nn.Dropout(args.dropout),
             nn.Linear(post_hidden, output_dim)
@@ -114,7 +101,6 @@ class GraphSage(MessagePassing):
     def forward(self, x, edge_index, size=None):
 
         z = self.propagate(edge_index, x=(x, x), dim_size=x.shape)
-
         out = self.lin_l(x) + self.lin_r(z)
         if self.normalize:
             out = F.normalize(out)

@@ -36,32 +36,11 @@ class ResidualMP(torch.nn.Module):
             self.convs.append(
                 DeeperGraphSage(hidden_dim, hidden_dim, hidden_dim=args.message_hidden, dropout=args.dropout))
 
-        # self.post_mp = nn.Sequential(
-        #     nn.Linear(hidden_dim, hidden_dim),
-        #     nn.ReLU(),
-        #     nn.Dropout(args.dropout),
-        #     nn.Linear(hidden_dim, output_dim))
-
         self.post_mp = nn.Sequential(
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(post_hidden, post_hidden),
-                    nn.Dropout(args.dropout),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(post_hidden),
-                    # nn.Linear(post_hidden, post_hidden)
-                )),
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(post_hidden, post_hidden),
-                    nn.Dropout(args.dropout),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(post_hidden),
-                    # nn.Linear(post_hidden, post_hidden),
-                )),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.Dropout(args.dropout),
-            nn.Linear(post_hidden, output_dim)
-        )
+            nn.Linear(hidden_dim, output_dim))
+
 
     def forward(self, x, edge_index):
 
@@ -93,32 +72,18 @@ class DeeperGraphSage(MessagePassing):
         self.out_channels = out_channels
         self.normalize = normalize
         self.dropout = dropout
+        self.first = first
 
         self.lin_l = nn.Linear(in_channels, out_channels)
+        self.lin_r = nn.Linear(in_channels, out_channels)
         # This has the residual of the graphsage message at the output
         # Could look at a deeper version?
-        self.first = first
-        if self.first:
-            self.r_adjust = nn.Linear(in_channels, out_channels)
-        self.lin_r = nn.Sequential(
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(out_channels, hidden_dim),
-                    nn.Dropout(dropout),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(hidden_dim),
-                    # nn.Linear(hidden_dim, out_channels)
-                )
-            ),
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(out_channels, hidden_dim),
-                    nn.Dropout(dropout),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(hidden_dim),
-                    # nn.Linear(hidden_dim, out_channels)
-                )
-            ),
+        self.mlp = ResNetBlock(
+            nn.Sequential(
+                nn.Linear(out_channels, hidden_dim),
+                nn.ReLU(),
+                nn.BatchNorm1d(hidden_dim),
+            )
         )
 
     def reset_parameters(self):
@@ -128,13 +93,12 @@ class DeeperGraphSage(MessagePassing):
     def forward(self, x, edge_index, size=None):
 
         z = self.propagate(edge_index, x=(x, x), dim_size=x.shape)
-        if self.first:
-            z = self.r_adjust(z)
-
         out = self.lin_l(x) + self.lin_r(z)
+        out = self.mlp(out)
 
         if self.normalize:
             out = F.normalize(out)
+
         return out
 
     def message(self, x_j):
