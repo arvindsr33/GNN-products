@@ -168,7 +168,7 @@ if __name__ == "__main__":
         'hidden_dim': 128,
         'dropout': 0.5,
         'lr': 0.001,
-        'epochs': 100,
+        'epochs': 50,
         'return_embeds': False,
         # 'model_type': 'GraphSage',
         # 'model_type': 'GCN',
