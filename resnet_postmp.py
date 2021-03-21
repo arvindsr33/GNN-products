@@ -36,23 +36,23 @@ class ResNetPostMP(torch.nn.Module):
         self.bns = torch.nn.ModuleList([torch.nn.BatchNorm1d(hidden_dim)
                                         for _ in range(args.num_layers)])
 
-        # self.post_mp = nn.Sequential(
-        #     nn.Linear(hidden_dim, hidden_dim),
-        #     nn.Dropout(args.dropout),
-        #     nn.Linear(hidden_dim, output_dim))
+        self.post_mp = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Dropout(args.dropout),
+            nn.Linear(hidden_dim, output_dim))
 
         # post-message-passing
         # TODO: Make module list
-        self.post_mp = nn.Sequential(
-            ResNetBlock(
-                nn.Sequential(
-                    nn.Linear(post_hidden, post_hidden),
-                    nn.ReLU(),
-                    nn.BatchNorm1d(post_hidden),
-                )),
-            nn.Dropout(args.dropout),
-            nn.Linear(post_hidden, output_dim)
-        )
+        # self.post_mp = nn.Sequential(
+        #     ResNetBlock(
+        #         nn.Sequential(
+        #             nn.Linear(post_hidden, post_hidden),
+        #             nn.ReLU(),
+        #             nn.BatchNorm1d(post_hidden),
+        #         )),
+        #     nn.Dropout(args.dropout),
+        #     nn.Linear(post_hidden, output_dim)
+        # )
 
         self.dropout = args.dropout
         self.num_layers = args.num_layers

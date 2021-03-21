@@ -164,7 +164,7 @@ if __name__ == "__main__":
     # device = "cpu"
     args = {
         'device': device,
-        'num_layers': 3,
+        'num_layers': 4,
         'hidden_dim': 128,
         'dropout': 0.5,
         'lr': 0.001,
