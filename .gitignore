@@ -5,3 +5,4 @@ __pycache__/*
 backup_save/*
 extra_backup/*
 *args.pkl
+*.png

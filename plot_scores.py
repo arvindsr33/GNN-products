@@ -3,7 +3,7 @@ import pickle
 import os
 
 
-def get_scores(folder):
+def get_scores_args(folder):
     path = os.path.join('save', folder)
     score_path = os.path.join(path, 'data-scores.pkl')
     arg_path = os.path.join(path, 'args.pkl')
@@ -14,28 +14,36 @@ def get_scores(folder):
     return scores, args
 
 
+def get_scores(folder):
+    path = os.path.join('save', folder)
+    score_path = os.path.join(path, 'data-scores.pkl')
+    with open(score_path, 'rb') as f:
+        scores = pickle.load(f)
+    return scores, None
+
+
 def plot_train_val_test(scores, name, save_path=None):
-    plt.plot(scores['train'], label='train acc')
+    # plt.plot(scores['train'], label='train acc')
     plt.plot(scores['val'], label='val acc')
     plt.plot(scores['test'], label='test acc')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.legend()
-    plt.title(name)
+    plt.plot(scores['loss'], label='loss')
+    plt.xlabel('Epoch', fontsize=14)
+    plt.ylabel('Accuracy', fontsize=14)
+    plt.legend(fontsize=12)
+    # plt.title(name, fontsize=16)
     if save_path:
         plt.savefig(save_path)
     plt.show()
 
 
-def plot_layer_diffs(runs, title, key, save_path=None):
+def plot_layer_diffs(runs, key, word, title=None, save_path=None):
     for folder in runs.keys():
         scores, _ = get_scores(folder)
-        plt.plot(scores[key], label=runs[folder])
+        plt.plot(scores[key][:50], label=runs[folder])
 
-    plt.legend()
-    plt.title(title)
-    plt.xlabel('Epoch')
-    plt.ylabel(key + " accuracy")
+    plt.legend(fontsize=12)
+    plt.xlabel('Epoch', fontsize=14)
+    plt.ylabel(key + " " + word, fontsize=14)
     if save_path:
         plt.savefig(save_path)
     plt.show()
@@ -46,7 +54,7 @@ def plot_loss(scores, name, save_path=None):
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title(name)
+    # plt.title(name)
     if save_path:
         plt.savefig(save_path)
     plt.show()
@@ -59,6 +67,7 @@ def find_test_val_accs(folder_names):
 
 if __name__ == "__main__":
 
+    saved_plots_dir = 'plots'
     # Change names of folders to what you have locally
     # folder : title
     # saved_data = {
@@ -83,9 +92,9 @@ if __name__ == "__main__":
     }
 
     # plot test, val, loss of layer diffs
-    plot_layer_diffs(layer_diffs, title='Test Accuracy vs Layer Depth', key='test', save_path=None)
-    plot_layer_diffs(layer_diffs, title='Val Accuracy vs Layer Depth', key='valid', save_path=None)
-    plot_layer_diffs(layer_diffs, title='Loss vs Layer Depth', key='loss', save_path=None)
+    plot_layer_diffs(layer_diffs, word='accuracy', key='test', save_path="l_diff_test.png")
+    plot_layer_diffs(layer_diffs, word='accuracy', key='val', save_path="l_diff_val.png")
+    plot_layer_diffs(layer_diffs, word='', key='loss', save_path="l_diff_loss.png")
 
     six_layers = {
         '6_layer_1': '6 layers',
@@ -94,17 +103,23 @@ if __name__ == "__main__":
         '6_layer_4': '6 layers',
         '6_layer_5': '6 layers',
     }
-    plot_layer_diffs(six_layers, title='Acc across runs', key='test', save_path=None)
+    # plot_layer_diffs(six_layers, title='Acc across runs', key='test', save_path=)
 
     other_models = {
-        'GraphSage_baseline': 'GraphSage Linear Head',
-        'no_mp_4': 'Residual GCN',
+        'GraphSage_baseline': 'GraphSage with Linear Head',
+        'no_mp_4': '4 Layer Residual GCN with Linear Head',
+        '6_layer_5': '6 layer Residual GCN with ResNet Head',
     }
+
+    plot_layer_diffs(other_models, word='accuracy', key='test', save_path="other_models_test.png")
+    plot_layer_diffs(other_models, word='accuracy', key='val', save_path="other_models_test.png")
+    plot_layer_diffs(other_models, word='', key='loss', save_path="other_loss.png")
 
     sum_vs_mean = {
-        '6_layer_1': '6 layers',
-        'postMP_sum_agg': '6 layers',
+        '6_layer_1': 'Mean Aggregation',
+        'postMP_sum_agg': 'Sum Aggregation',
     }
+    plot_layer_diffs(other_models, word='accuracy', key='test', save_path="sum_vs_mean.png")
 
+    # Get max test_valid
 
-    # Add any extra combinations of folders to plot on the same graph if needed
