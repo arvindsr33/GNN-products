@@ -2,4 +2,6 @@ dataset/*
 __pycache__/*
 .idea/*
 *.pt
-*.pkl
+backup_save/*
+extra_backup/*
+*args.pkl
